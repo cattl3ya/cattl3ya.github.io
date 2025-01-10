@@ -89,7 +89,7 @@ CreateProcessW(path, NULL, NULL, NULL, TRUE, 0, NULL, NULL, &procStartInfo, &pro
 ```
 
 We'll use `powercat` to listen for the reverse shell...and it works! 
-![](/assets/img/1-revshell.png)
+![](https://www.johnmathot.com/assets/img/1-revshell.png)
 
 ***
 **Position Independent Code**
@@ -313,14 +313,14 @@ AlignRSP ENDP
 ```
 
 Now we can link with MSVC `ml64.exe /link /entry:Align_RSP` and get our shellcode from the executable. We'll use CFF explorer. Our shellcode is the .text section, from addresses 0x400 to 0xE10.
-![](/assets/img/cffhex.png)
+![](https://www.johnmathot.com/assets/img/cffhex.png)
 
 To test it, we'll attach to a notepad.exe in xdbg64. We'll set the rwx permissions on a block of memory, paste in our shellcode
 
-![](/assets/img/4-revshellUntitled.png)
+![](https://www.johnmathot.com/assets/img/4-revshellUntitled.png)
 
 and...it all works!
 
-![](/assets/img/3-revshellUntitled.png)
+![](https://www.johnmathot.com/assets/img/3-revshellUntitled.png)
 
 However, there are two problems that limit the utility of what we've done. First, the generated shellcode is about 2.5kb, which is extremely large for what it does. By comparison, using msfvenom to generate shellcode that does the same thing creates a payload on the order of ~200 bytes - a 10x difference in size. The second problem is that our shellcode is full of null 0x00 bytes. It works if we're injecting it into memory or executing it from a shellcode loader, but if we tried to use it in something like a buffer overflow exploit or other binary exploit it will crash. Nonetheless, we accomplished what we set out to do: practiced working with the Win32 API in C, learned something about how DLL and PE files work, and learned more about how shellcode works. 
