@@ -3,7 +3,6 @@ title: Writing a Reverse Shell in C and Compiling to Shellcode
 date: 2025-01-09 00:00:00 +/-0000
 categories: [Guides]
 tags: []     # TAG names should always be lowercase
-media_subpath: /assets/img/
 ---
 
 I've been working on my C programming skills lately, and getting more familiar with writing programs that use the Win32 API. I thought that an interesting project would be to write my own reverse shell in C, and then compile it to use as shellcode. Sure, `msfvenom` is there, but I want to know more and this is a good way to learn a few things:
