@@ -314,7 +314,7 @@ AlignRSP ENDP
 Now we can link with MSVC `ml64.exe /link /entry:Align_RSP` and get our shellcode from the executable. We'll use CFF explorer. Our shellcode is the .text section, from addresses 0x400 to 0xE10.
 ![](https://www.johnmathot.com/assets/img/cffhex.png)
 
-To test it, we'll attach to a notepad.exe in xdbg64. We'll set the rwx permissions on a block of memory, paste in our shellcode
+To test it, we'll attach to a notepad.exe in x64dbg. We'll set the rwx permissions on a block of memory, paste in our shellcode
 
 ![](https://www.johnmathot.com/assets/img/4-revshellUntitled.png)
 
