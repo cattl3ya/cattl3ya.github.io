@@ -4,18 +4,18 @@ date: 2025-02-27 00:00:00 +/-0000
 categories: [Guides, Windows Security Internals]
 tags: []     # TAG names should always be lowercase
 ---
-**Introduction**
+### Introduction
 
 One of the more satisfying things for me when practicing penetration testing is getting access as an administrator account, running `impacket-secretsdump` or `mimikatz lsadump::sam`, and then watching the list of NTLM hashes start scrolling down the terminal. 
 But how does dumping the Local Security Authority (LSA) database using these tools really work? I knew the basics: the LSA stores NTLM hashes and other secrets in registry hives on the local system, and if you have either administrative access or can make a copy of the SAM, SECURITY, and SYSTEM hives you can extract stored credentials from them. This article will show how Windows authentication works, how credentials are stored locally, and how to extract them from the registry. We'll also write a program in C to apply this knowledge and extract all of the NT hashes from the local SAM database.
 
-**Windows Authentication**
+### Windows Authentication
 
 On a Windows local domain, the system needs to store user credentials so that they can be used to authenticate users. This information is managed by the *Local Security Authority* (LSA). The LSA keeps two databases: the *Security Account Manager* (SAM) database, and the LSA policy database. These databases are usually accessed through API calls, for example, the PowerShell built-in command `Get-LocalUser` queries the *user database* component of the SAM database, and returns information such as the Security Identifier and username for a local account. The *LSA Policy* database stores information relating to account privileges, system secrets, and audit policies. There's no way to access a local user's password by using the API calls that the LSA exposes, so we'll have to interact with the SAM database directly. 
 
 Before we can extract anything from the SAM database, we have to consider what we're looking for. Windows stores passwords as an MD4 hash of the plaintext password, called the *NT hash*. During the login process, the LSA hashes the provided password and compares it to the NT hash stored in the SAM database. The SAM database is stored on the local computer as a registry hive, so by accessing it directly we should be able to extract the NT hashes for all users on the system.
 
-However, the NT hashes are not stored as plaintext in the SAM database. They are first encrypted with DES, using two keys derived from the user's relative ID. This encrypted hash is then encrypted again with either RC4 or AES, using a *password encryption key* derived from the *LSA system key*. The password encryption key is encrypted with AES, using the LSA system key as the key. The LSA system key itself is in plaintext, but obfuscated inside the SYSTEM registry hive. 
+However, the NT hashes are not stored as plaintext in the SAM database. They are first encrypted with DES, using two keys derived from the user's relative ID. This encrypted hash is then encrypted again with either RC4 or AES, using a *password encryption key*, which is itself AES-encrypted with the *LSA system key*. The LSA system key itself is in plaintext, but obfuscated inside the SYSTEM registry hive. 
 
 Our program will have to accomplish the following:
 1. Reconstruct and deobfuscate the LSA system key
@@ -28,12 +28,12 @@ Our program will have to accomplish the following:
 I chose to do this in C, because we'll be spending a lot of time working with byte arrays and hex values, so we'll come to a thorough understanding of how everything works. Most of the implementations and variations of `secretsdump` tend to use Python, C#, or PowerShell, so hopefully this will also serve as a novel example to learn from.
 
 ***
-**Part 0: Accessing the SAM Hive**
+### Part 0: Accessing the SAM Hive
 
 The SAM database is stored in the `HKLM:\SAM` registry hive. Ordinary accounts cannot read it, not even administrator accounts. So we'll have to start by elevating to the `NT AUTHORITY\SYSTEM` account. There's a few different ways to do this, such as creating a shadow volume copy, using `reg save` to create a new local copy, or copying the `NT AUTHORITY\SYSTEM` token from a privileged process. To simplify things, we'll assume our program is going to be run from the command line as `NT AUTHORITY\SYSTEM`, so by running `Start-Win32ChildProcess powershell.exe -User S-1-5-18` as an administrator we can run and debug our program.
 
 ***
-**Part I: Reconstructing the LSA System Key**
+### Part I: Reconstructing the LSA System Key
 
 The LSA system key is used to encrypt the password encryption key, other entries in the SECURITY hive and other LSA secrets. The key is obfuscated, with its byte order rearranged before being broken into four parts, each of which is stored in a different location in the `HKLM:\SYSTEM` registry hive. 
 
@@ -104,7 +104,7 @@ return bootkey;
 ```
 
 ***
-**Part II: Decrypting the LSA System Key**
+### Part II: Decrypting the LSA System Key
 
 Now that we have the deobfuscated LSA system key (aka system key, boot key), we can use it as a key to decrypt the password encryption key. The password encryption key is stored in the SAM hive key `HKLM:\SAM\SAM\Domains\Account` key, within the `F` field. So we will query all of the `F` field data and store it in a buffer.
 
@@ -191,7 +191,7 @@ return;
 Now we have our 16 byte fully decrypted password encryption key in the `dpek` array, and the next step is to get the user data and NT hashes.
 
 ***
-**Part III: Querying the SAM Hive for User Information**
+### Part III: Querying the SAM Hive for User Information
 
 The SAM user database is stored in the `HKLM:\SAM\SAM\Domains\Account\Users` registry key. Each user account is stored as a subkey, indexed by the hex value of the user's RID (i.e. Administrator, RID 500, is stored under `000001F4`).
 
@@ -263,7 +263,7 @@ for (DWORD i = offset, j = 0; i < offset + vlen; i++, j++) {
 We now have the deobfuscated LSA system key, the plaintext password encryption key, and our NT hash. The next step is to begin decrypting the NT hash that was stored in the registry.
 
 ***
-**Part IV: Decrypting the NT Hash, Stage 1**
+### Part IV: Decrypting the NT Hash, Stage 1
 
 Let's start with a new function `DecodePasswordHash`, which takes our plaintext PEK, and a `user` struct with the information we got in the last part. Before we can decrypt the NT hash, we have to parse what we recovered from the registry entry. There are several components of the encrypted NT hash that we have to split apart:
 
@@ -308,7 +308,7 @@ for (ULONG i = 0; i < outputlen; i++)
 Remember from our discussion above that the NT hash has been encrypted twice: once with DES, and once with AES. We've successfully decrypted the AES operation, but all we got from the output is the NT hash as DES ciphertext. It's time to go to the next step, and decrypt the NT hash to a final plaintext form.
 
 ***
-**Part V: Decrypting the NT Hash, Stage 2**
+### Part V: Decrypting the NT Hash, Stage 2
 
 The DES keys that encrypt the NT hash are generated from the user's RID. Two keys are needed because the plaintext NT hash was split into two parts of eight bytes, and each part encrypted with one of the keys. The keys are generated from permutations of the user's RID, so to start we will convert the RID into bytes. We'll convert wide chars to a number, then the number to a byte array for easy permutation. 
 
@@ -409,7 +409,7 @@ for (int i = 0; i < 16; i++) {
 And it's finally done, we have our NT hash in plaintext!
 
 ***
-**Part VI: Output**
+### Part VI: Output
 
 Let's run our program, remembering to do so as `NT AUTHORITY\SYSTEM`:
 
@@ -421,23 +421,18 @@ and we get the name and NT hashes for the two user accounts I added to this comp
 
 It matches perfectly. 
 
-**Conclusion**
+### Conclusion
 
 That was a long process to dump the hashes from the SAM database ourselves. I hope you learned a bit about the Windows registry, SAM, and Windows authentication from following along. Compared to `secretsdump`, our program has the following things that could be improved:
 1. Creating a temporary copy of the SAM hive or otherwise elevating privileges to avoid needing a session as `NT AUTHORITY\SYSTEM`. 
 2. Using SMB to be able to dump hashes from remote computers.
 
-Nonetheless, it was interesting to be able to do this "from scratch", and I'm feeling more confident in my C programming skills. The full source the "CSamDump" program written here is on my github:
-
-https://github.com/cattl3ya/csamdump
+Nonetheless, it was interesting to be able to do this from scratch, and I'm feeling more confident in my C programming skills. The full source the "CSamDump" program written here [is on my github](https://github.com/cattl3ya/csamdump).
 
 **Sources and Further Reading**
+
 A lot of information in this article, and the algorithms dealing with the DES keys, comes from Chapter 10 of *Windows Security Internals* by James Forshaw. 
 
-A good blog post about the system key: 
+A good blog post [about the system key](https://moyix.blogspot.com.ar/2008/02/syskey-and-sam.html)
 
-https://moyix.blogspot.com.ar/2008/02/syskey-and-sam.html
-
-And the secretsdump.py source: 
-
-https://github.com/fortra/impacket/blob/master/impacket/examples/secretsdump.py
+And [the secretsdump.py source](https://github.com/fortra/impacket/blob/master/impacket/examples/secretsdump.py)
