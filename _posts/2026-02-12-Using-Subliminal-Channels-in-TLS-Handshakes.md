@@ -69,7 +69,7 @@ There's been some prior work by others with the idea of hiding data at various p
 ### Implementation
 With the background out of the way, I'll now explain how I implemented this technique as a proof-of-concept. If you want to skip the details, go to the Results section. If you want to jump into playing with the demo, check out the github page [here](https://github.com/cattl3ya/tls-subliminal-channel.git) and follow this build guide:
 
-#### Build Instructions:
+#### Build Instructions
 1. `git clone https://github.com/cattl3ya/tls-subliminal-channel.git`
 2. `git clone https://github.com/wolfSSL/wolfssl.git`
 3. Copy the files from `./tls-subliminal-channel/wolfssl-5.8.4/` to `./wolfssl-5.8.4/` to overwrite ed25519.c, ed25519.h, tls13.c, and libwolfssl_sources.h
@@ -297,7 +297,7 @@ After patching WolfSSL, I wrote a simple server and client program in C. There's
 
 Because the client may or may not actually be using the subliminal channel, the rx buffer will fill up with essentially random bytes. Therefore I implemented a small protocol of command sequences. The byte sequence `A0A0` is a command start, `F0F1` is a command end. They're defined at the start of the c files if you're interested in playing with them. With 4 bytes, it's unlikely that these sequences will appear randomly.
 
-#### Client:
+#### Client
 1. Has a tx and rx buffer. The rx buffer is checked for any command sequences. If so, the commands are executed and `stdout` read into the tx buffer.
 2. If the tx buffer isn't empty, override the EdDSA nonce, connect to the server, and send an HTTP request. If it is empty, wait x seconds and connect to the server. 
 3. Copy the data in the server's `CertificateVerify` message into the rx buffer and receive the HTTP response.
