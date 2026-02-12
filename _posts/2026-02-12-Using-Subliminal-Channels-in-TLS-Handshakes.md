@@ -5,7 +5,7 @@ categories: [Guides]
 tags: []     # TAG names should always be lowercase
 ---
 
-## Introduction
+### Introduction
 Did you know that it's possible to hide a message inside a digital signature? And that a signature containing a message will pass validation checks and be indistinguishable from a signature that does not contain a message? And that any observer who sees the signature will not only be unable to read the message, but will have no idea that it even exists?
 
 That is what a *subliminal channel* can do. Now, think about all of the digitally signed data that's constantly being shared over the internet: x.509 certificates, TLS connections, DKIM email headers, linux packages, kerberos tickets, cryptocurrency transactions, and so on. If it's something that uses a signature algorithm based on DSA or EcDSA, it could be used to send messages over a subliminal channel. The way using a subliminal channel works, in a general protocol, is:
@@ -23,7 +23,7 @@ That's where I got the idea for this paper. I'm assuming only some basic knowled
 
 If you're already curious and want to experiment with it yourself now, can skip to the build guide at the start of the Implementation section. If you want to see what it looks like in action and the key points, skip to the Results and Conclusion sections. 
 
-## Background: Subliminal Channels in EdDSA
+### Background: Subliminal Channels in EdDSA
 Gustavus Simmons invented the concept of a subliminal channel and demonstrated their existence in the Digital Signature Algorithm (DSA). The general idea is that DSA has parameters that must be set with random information. By manipulating this random value, you can affect the value of the signature. The signature remains valid, but contains information related to value used in its generation. The channel is present algorithms that calculate signatures similarly to DSA, such as Elliptic-curve DSA (EcDSA), and Edwards-curve DSA (EdDSA). 
 
 After doing some more research on EdDSA, it turned out that my idea wasn't new, and I found the paper "A Subliminal Channel in EdDSA: Information Leakage with High-Speed Signatures" by Hartl, Annessi, and Zseby [(link)](https://doi.org/10.1145/3139923.3139925) . They described the subliminal channel in EdDSA and tested some methods of using it, including in TLS handshakes. This paper was very helpful for figuring out the math behind implementing the subliminal channel.
@@ -47,7 +47,7 @@ The narrowband channel hides data in the signature component `R`, through genera
 
 For my implementation, I'll use the narrowband channel to send over a private key, and then use the broadband channel to communicate 31 bytes, or 248 bits of data at a time.
 
-## Background: TLS 1.3 handshakes
+### Background: TLS 1.3 handshakes
 We now understand how we can embed subliminal data in EdDSA signatures, either a few bits at a time or in 252 bit chunks. Let's look at how we can apply this to the TLS handshake.
 
 The basic structure of a TLS 1.3 handshake is:
@@ -66,10 +66,10 @@ There's been some prior work by others with the idea of hiding data at various p
 1. The other methods can be detected by inspecting the plaintext `ClientHello` messages, or examining the certificates and seeing that unusual data is present in certain fields compared to normal traffic. The subliminal channel is hard to detect for the reasons explained above: anyone examining the traffic will see normal TLS handshakes occurring with the expected values in the right fields, valid certificates that don't contain any extra data, and that everything has been signed with a valid, verifiable signature.
 2. TLS inspection will block our channel, but will not compromise it. Because the TLS inspection proxy creates a new TLS connection and doesn't forward our signed `CertificateVerify` message, the subliminal data in the signature won't be passed through the proxy. However, anyone inspecting the messages that the client and server tried to exchange will be unable to tell what is going on, as they will only see an attempt to do a mutual TLS handshake.
 
-## Implementation
+### Implementation
 With the background out of the way, I'll now explain how I implemented this technique as a proof-of-concept. If you want to skip the details, go to the Results section. If you want to jump into playing with the demo, check out the github page ![here](https://github.com/cattl3ya/tls-subliminal-channel.git) follow this build guide:
 
-### Build Instructions:
+#### Build Instructions:
 1. `git clone https://github.com/cattl3ya/tls-subliminal-channel.git`
 2. `git clone https://github.com/wolfSSL/wolfssl.git`
 3. Copy the files from `./tls-subliminal-channel/wolfssl-5.8.4/` to `./wolfssl-5.8.4/` to overwrite ed25519.c, ed25519.h, tls13.c, and libwolfssl_sources.h
@@ -80,7 +80,7 @@ With the background out of the way, I'll now explain how I implemented this tech
 8. If you want to be able to decrypt the traffic, set `export SSLKEYLOGFILE=./ssl_key_log.txt` in your terminal
 9. Start the server and client programs
 
-### Initial Planning
+#### Initial Planning
 In general, we have to accomplish two things to implement the subliminal channel:
 1. Override the nonce value `r` generated during EdDSA signing.
 2. Access the signature data in the `CertificateVerify` messages so we can either access the important bits of `R` for the narrowband channel or decode the signature to recover `r` for the broadband channel.
@@ -285,10 +285,10 @@ Again, the patch isn't very complicated. The only trick is in allocating our str
 
 And that's it for our patch. We just need to build our patched WolfSSL library for static linking after we have our client and server.
 
-## C2 Server and Client
+### C2 Server and Client
 After patching WolfSSL, I wrote a simple server and client program in C. There's nothing particularly special about the code, so for brevity I won't include any code here (you can always take a look at it on github), but will give a general overview of how the programs work.
 
-### Server
+#### Server
 1. Has a transmit (tx) and receive (rx) buffer. Commands for the client are read from `stdin`, formatted, and copied into the tx buffer.
 2. If the tx buffer contains a complete message, the EdDSA nonce is overridden (either on the broadband or narrowband channel) and the server waits for a connection. If there is no message, the nonce is not overridden (i.e. it proceeds according to the specified implementation) and the server waits for a connection.
 3. If a client connects, the data in the client's `CertificateVerify` message is copied to the rx buffer, a simple HTTP response is sent, and the connection is closed.
@@ -297,35 +297,47 @@ After patching WolfSSL, I wrote a simple server and client program in C. There's
 
 Because the client may or may not actually be using the subliminal channel, the rx buffer will fill up with essentially random bytes. Therefore I implemented a small protocol of command sequences. The byte sequence `A0A0` is a command start, `F0F1` is a command end. They're defined at the start of the c files if you're interested in playing with them. With 4 bytes, it's unlikely that these sequences will appear randomly.
 
-### Client:
+#### Client:
 1. Has a tx and rx buffer. The rx buffer is checked for any command sequences. If so, the commands are executed and `stdout` read into the tx buffer.
 2. If the tx buffer isn't empty, override the EdDSA nonce, connect to the server, and send an HTTP request. If it is empty, wait x seconds and connect to the server. 
 3. Copy the data in the server's `CertificateVerify` message into the rx buffer and receive the HTTP response.
 4. GOTO (1)
 
-## Results
-Now we're all ready to go. This is what it looks like to execute some commands over the narrowband channel: ![narrowband c2](assets/img/narrowband_c2.png)
+### Results
+Now we're all ready to go. This is what it looks like to execute some commands over the narrowband channel: 
 
-And over the broadband channel:![broadband c2](assets/img/broadband_c2.png)
+![](assets/img/narrowband_c2.png)
+
+And over the broadband channel:
+
+![](assets/img/broadband_c2.png)
 
 You can notice the difference in speed between the narrowband and broadband channels. To do a simple `whoami` and get the reply required 130 handshakes over the narrowband channel. Running something with a fair amount of output, like `ls`, required 290 handshakes to transmit the data. In comparison, the broadband channel can handle `ls` in 10 handshakes.
 
 So what does it look like over the wire?
-It looks like...![packet capture](assets/img/wshark_1.png)
+It looks like...
+
+![](assets/img/wshark_1.png)
 
 ...a ton of TLS handshakes that are all almost exactly the same. We see the hello messages, then the encrypted parts of the handshake, then a small bit of encrypted data being exchanged.
 
-Let's start another packet capture, this time dumping the TLS session keys to a log so we can decrypt the traffic:![decrypted packets](assets/img/wshark_2.png)
+Let's start another packet capture, this time dumping the TLS session keys to a log so we can decrypt the traffic:
+
+![](assets/img/wshark_2.png)
 
 With the decrypted traffic, there's still nothing very suspicious. We have a mutual certificate exchange, and then an HTTP request and response with nothing in it. There's nothing to give away that we were actually running commands on the client and receiving a response.
 
-Let's take a look at when the client received the `whoami` command over the broadband channel:![whoami](assets/img/whoami.png)
+Let's take a look at when the client received the `whoami` command over the broadband channel:
+
+![](assets/img/whoami.png)
 
 We see the signature of the server's `CertificateVerify` message, that it passed the validation checks, and that it successfully decoded to our command sequence and executed `whoami`. 
-Let's go back and search for that signature so we can look at the packet where it happens:![whoami_packet](assets/img/whoami_packet.png)
+Let's go back and search for that signature so we can look at the packet where it happens:
+
+![](assets/img/whoami_packet.png)
 
 And there it is! We see the server sending an apparently plain old `CertifcateVerify` message. Anyone looking at this would have no idea the signature actually contains the subliminal data `whoami`.
-# Conclusions
+### Conclusions
 So we've successfully run some commands by using subliminal channels in TLS handshakes. I didn't think it'd be so interesting to look at packets where apparently nothing is happening.
 
 The advantages:
