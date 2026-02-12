@@ -67,7 +67,7 @@ There's been some prior work by others with the idea of hiding data at various p
 2. TLS inspection will block our channel, but will not compromise it. Because the TLS inspection proxy creates a new TLS connection and doesn't forward our signed `CertificateVerify` message, the subliminal data in the signature won't be passed through the proxy. However, anyone inspecting the messages that the client and server tried to exchange will be unable to tell what is going on, as they will only see an attempt to do a mutual TLS handshake.
 
 ### Implementation
-With the background out of the way, I'll now explain how I implemented this technique as a proof-of-concept. If you want to skip the details, go to the Results section. If you want to jump into playing with the demo, check out the github page [here](https://github.com/cattl3ya/tls-subliminal-channel.git) follow this build guide:
+With the background out of the way, I'll now explain how I implemented this technique as a proof-of-concept. If you want to skip the details, go to the Results section. If you want to jump into playing with the demo, check out the github page [here](https://github.com/cattl3ya/tls-subliminal-channel.git) and follow this build guide:
 
 #### Build Instructions:
 1. `git clone https://github.com/cattl3ya/tls-subliminal-channel.git`
