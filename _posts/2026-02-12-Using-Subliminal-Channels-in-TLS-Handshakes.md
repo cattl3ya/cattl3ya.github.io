@@ -42,7 +42,7 @@ Yes, there is another way to use subliminal channels in EdDSA that does not requ
 The narrowband channel hides data in the signature component `R`, through generating random `r` values until one is found that generates an `R` value that contains the data you wanted to transmit. The implementation looks like this: 
 - Alice and Bob agree that the last `b` bits of the signature component `R` contains subliminal data. In this example, they agree the last 4 bits are the message, so `b = 4`.
 - Alice wants to send the message `0101`, so she generates random `r` values until she finds one that generates an `R` value ending in `0101`. She has to test `2^b` values on average until she finds a suitable nonce, so she'll have had to run the signature algorithm about 2^4 or 16 times. 
-- Bob receives the message `M` and the signature `(R,S)`. He doesn't need to take any special steps to decode the subliminal message, as it's contained right there in the last 4 bits of R: `0101`.
+- Bob receives the message `M` and the signature `(R,S)`. He doesn't need to take any special steps to decode the subliminal message, as it's contained right there in the last 4 bits of `R`: `0101`.
 - Alice and Bob repeat the process, sending 4 bits at a time. Any observer will not notice anything amiss, as all the signatures are valid. Eventually Bob reconstructs the message after concatenating all the 4 bit pieces together.
 
 For my implementation, I'll use the narrowband channel to send over a private key, and then use the broadband channel to communicate 31 bytes, or 248 bits of data at a time.
@@ -107,7 +107,7 @@ Therefore, there's two places we need to patch WolfSSL:
 
 We'll begin with patching the signing algorithm.
 
-After looking through the WolfSSL source, the EdDSA signing algorithm is implemented in `wolfcrypt/src/ed22519.c`, in the function `wc_ed25519_sign_msg_ex`. The WolfSSL code is well documented, and it's easy to see where our patch needs to go around line 480:
+After looking through the WolfSSL source, the EdDSA signing algorithm is implemented in `wolfcrypt/src/ed25519.c`, in the function `wc_ed25519_sign_msg_ex`. The WolfSSL code is well documented, and it's easy to see where our patch needs to go around line 480:
 ```c
 /* step 1: create nonce to use where nonce is r in
 r = H(h_b, ... ,h_2b-1,M) */
@@ -197,7 +197,7 @@ WOLFSSL_API int wc_ed25519_SetNonceOverride(unsigned char* nonce, int len, char 
 }
 //END PATCH CODE
 ```
-and add the function to the `ed22519.h` file
+and add the function to the `ed25519.h` file
 ```c
 //PATCH CODE
 int wc_ed25519_SetNonceOverride(unsigned char* nonce, int len, char type, unsigned char target);
@@ -205,7 +205,7 @@ int wc_ed25519_SetNonceOverride(unsigned char* nonce, int len, char type, unsign
 ```
 
 ### Patching WolfSSL - Extracting the CertificateVerify Signature
-Patching the EdDSA signing function was pretty simple. Now we have to find out a way to patch the TLS handshake function to be able to read data from the `CertificateVerify` messages. These functions aren't exposed to the user, because there's ordinarily no reason to need to access these values: they either pass the validation check and can be discarded, or they fail the validation check and a TLS handshake error gets returned. WolfSSL handles the TLS 1.3 handshake in the `src/tls13.c` file. Inside, we find the conveniently named `DoTls13CertificateVerify` function, where the CertificateVerify message of the handshake is parsed and validated.
+Patching the EdDSA signing function was pretty simple. Now we have to find out a way to patch the TLS handshake function to be able to read data from the `CertificateVerify` messages. These functions aren't exposed to the user, because there's ordinarily no reason to need to access these values: they either pass the validation check and can be discarded, or they fail the validation check and a TLS handshake error gets returned. WolfSSL handles the TLS 1.3 handshake in the `src/tls13.c` file. Inside, we find the conveniently named `DoTls13CertificateVerify` function, where the `CertificateVerify` message of the handshake is parsed and validated.
 
 What we need to do here is:
 1. For the narrowband channel, we only need to copy the last 4 bits of the signature's `R` value.
