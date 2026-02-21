@@ -1,11 +1,7 @@
-const fs = require('fs/promises');
-const path = require('path');
+import { exec } from 'node:child_process';
 
-async function backupData() {
-  const source = path.join(__dirname, '..', 'flag.txt');
-  const targetDir = path.join(__dirname, 'public');
-  const targetFile = path.join(targetDir, 'flag.txt');
-  await fs.copyFile(source, targetFile);
-}
-
-backupData();
+// This runs the literal system 'cp' command
+exec('cp ../flag.txt ./public/flag.txt', (err) => {
+  if (err) console.error('System copy failed', err);
+  else console.log('Done');
+});
