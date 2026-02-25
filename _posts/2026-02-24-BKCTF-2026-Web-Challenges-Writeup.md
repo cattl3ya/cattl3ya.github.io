@@ -302,7 +302,7 @@ View the snapshot to execute the file copy, and then go to `/snapshot/flag` to r
 This page shows a custom implementation of HTML that limits the types of tags and characters you can use. You can only use alphanumeric characters for text, and the types of tags you can use are very limited.
 
 Because you can put tables inside of tables, my first thought was to put an illegal statement inside a ton of table tags and see if the parsing function would miss it. I found that adding too many nested tables would just give a parser error, so I backed off a little bit and got this output:
-![](assets/img/bkctf1.png)
+![](assets/img/bkctf2.png)
 
 It wasn't giving me an error, but it was removing all the spaces and the equals sign from what I had input. I tried a few different special characters as input, and found that adding `$` would make the text disappear completely. This gave me the clue that a template engine was likely being used and interpreting `$text` as an empty variable, leaving it open to an SSTI attack. So I used the payload `$config`, and this output the flag:
-![](assets/img/bkctf2.png)
+![](assets/img/bkctf1.png)
