@@ -3,6 +3,7 @@ title: "Using Subliminal Channels in TLS Handshakes as a C2 Method"
 date: 2026-02-12 00:00:00 +/-0000
 categories: [Guides]
 tags: []     # TAG names should always be lowercase
+description: "Some research into using subliminal channels in EdDSA signatures. Subject of a talk given at BSides312."
 ---
 
 ### Introduction

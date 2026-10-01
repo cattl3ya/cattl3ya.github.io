@@ -3,6 +3,7 @@ title: "BKCTF 2026: Web Challenges Writeup"
 date: 2026-02-24 00:00:00 +/-0000
 categories: [Guides]
 tags: []     # TAG names should always be lowercase
+description: "My solutions for the web challenges of Batman's Kitchen 2026"
 ---
 
 ### Introduction

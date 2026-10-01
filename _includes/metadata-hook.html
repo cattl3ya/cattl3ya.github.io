@@ -1,0 +1,11 @@
+<style>
+  article .content > p {
+    text-indent: 2em;
+    margin-bottom: 0;
+  }
+  /* Image-only paragraphs: no indent, keep normal spacing */
+  article .content > p:has(> img:only-child) {
+    text-indent: 0;
+    margin-bottom: 1rem;
+  }
+</style>

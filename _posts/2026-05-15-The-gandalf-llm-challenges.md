@@ -3,6 +3,7 @@ title: The Lakera Gandalf LLM Challenges
 date: 2026-05-15 00:00:00 +/-0000
 categories: [Guides]
 tags: []     # TAG names should always be lowercase
+description: "My solutions for the Gandalf prompt injection challenges"
 ---
 
 ### Introduction

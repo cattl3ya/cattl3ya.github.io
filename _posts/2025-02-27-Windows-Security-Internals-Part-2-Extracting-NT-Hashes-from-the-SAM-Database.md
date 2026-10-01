@@ -3,6 +3,7 @@ title: Windows Security Internals - Part II - Extracting NT Hashes from the SAM 
 date: 2025-02-27 00:00:00 +/-0000
 categories: [Guides, Windows Security Internals]
 tags: []     # TAG names should always be lowercase
+description: "A guide to manually working with the SAM database, and how mimikatz etc works under the hood."
 ---
 ### Introduction
 
