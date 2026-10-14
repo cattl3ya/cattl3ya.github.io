@@ -1,0 +1,84 @@
+baseURL = "https://www.johnmathot.com/"
+theme = "risotto"
+title = "John Mathot"
+author = "John Mathot"
+copyright = "© 2026 John Mathot"
+locale = "en"
+DefaultContentLanguage = "en"
+enableRobotsTXT = true
+enableGitInfo = true
+disablePathToLower = true
+
+# No categories/tags pages
+disableKinds = ["taxonomy", "term"]
+
+# Add content sections to the main menu
+sectionPagesMenu = "main"
+
+[pagination]
+pagerSize = 10
+
+[params]
+noindex = false
+
+[params.theme]
+palette = "base16-dark"
+
+[params.about]
+title = "John Mathot"
+description = "Anything."
+logo_image = "images/orchid.jpg"
+
+[[params.socialLinks]]
+icon = "fa-brands fa-github"
+title = "GitHub"
+url = "https://github.com/cattl3ya"
+
+[[params.socialLinks]]
+icon = "fa-brands fa-linkedin"
+title = "LinkedIn"
+url = "https://www.linkedin.com/in/jdm0451/"
+
+[[params.socialLinks]]
+icon = "fa-solid fa-envelope"
+title = "Email"
+url = "mailto:jmcattleya@proton.me"
+
+[menu]
+
+  [[menu.main]]
+    identifier = "about"
+    name = "About"
+    url = "/about/"
+    weight = 10
+
+[permalinks]
+  posts = "/posts/:slug/"
+
+[taxonomies]
+
+# Serve the RSS feed at the old Jekyll path (/feed.xml)
+[outputFormats]
+  [outputFormats.RSS]
+    baseName = "feed"
+
+# Show a table of contents on every post (rendered in the sidebar)
+[[cascade]]
+  [cascade.params]
+    toc = true
+  [cascade.target]
+    path = "/posts/**"
+    kind = "page"
+
+[markup.goldmark.renderer]
+unsafe = true
+
+[markup.tableOfContents]
+  startLevel = 2
+  endLevel = 3
+  ordered = true
+
+[sitemap]
+  changeFreq = ""
+  priority = -1
+  filename = "sitemap.xml"

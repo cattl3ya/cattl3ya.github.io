@@ -1,0 +1,49 @@
+/* Serif font (Lora, loaded from Google Fonts in head.html); code stays monospace via the theme's --font-monospace */
+:root {
+  --font-serif: Lora, Georgia, "Times New Roman", serif;
+}
+
+body {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.65rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+}
+
+/* Paragraph indentation (Risotto wraps page content in .content__body) */
+.content__body > p {
+  text-indent: 2em;
+  margin-bottom: 0;
+}
+
+/* Image-only paragraphs: no indent, keep normal spacing */
+.content__body > p:has(> img:only-child) {
+  text-indent: 0;
+  margin-bottom: 1.5rem;
+}
+
+/* Keep a gap between a paragraph and the block that follows it */
+.content__body > p + :is(pre, .highlight, ul, ol, blockquote, table, figure) {
+  margin-top: 1.5rem;
+}
+
+/* Post headings: +4pt over the theme's 1rem */
+.content__body :is(h1, h2, h3, h4, h5, h6) {
+  font-size: calc(1rem + 4pt);
+  line-height: 1.4;
+}
+
+/* Page titles (post, about, and list pages like /posts/): +6pt over the theme's 1rem */
+.content__header h1,
+.page__body > h1 {
+  font-size: calc(1rem + 6pt);
+  line-height: 1.3;
+}
+
+/* Title bar prompt: replace "$" with ">" */
+.page__logo-inner:after {
+  content: "] >";
+}
